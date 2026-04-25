@@ -2,7 +2,7 @@
 
 ZIP 파일 안의 이미지와 동영상을 브라우저에서 바로 확인할 수 있는 뷰어입니다.
 
-**[GitHub Pages에서 열기](https://jkh-ml.github.io/study-zip-viewer/)**
+**[GitHub Pages에서 열기](https://jkh-ml.github.io/zip-viewer/)**
 
 ## 기능
 
