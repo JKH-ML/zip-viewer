@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZIP Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 20px 32px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      background: #0f0f0f;
+      z-index: 100;
+    }
+
+    header h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    #download-all-btn {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    #download-all-btn:hover { background: #1d4ed8; }
+    #download-all-btn.visible { display: flex; }
+
+    /* Drop zone */
+    #drop-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 60px auto;
+      max-width: 520px;
+      height: 260px;
+      border: 2px dashed #333;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+
+    #drop-zone.dragover {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.06);
+    }
+
+    #drop-zone svg { opacity: 0.4; }
+
+    #drop-zone p {
+      font-size: 15px;
+      color: #888;
+    }
+
+    #drop-zone span {
+      font-size: 13px;
+      color: #555;
+    }
+
+    #file-input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* Stats bar */
+    #stats-bar {
+      display: none;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 32px;
+      background: #161616;
+      border-bottom: 1px solid #222;
+      font-size: 13px;
+      color: #888;
+      flex-wrap: wrap;
+    }
+
+    #stats-bar.visible { display: flex; }
+
+    #stats-bar strong { color: #ccc; }
+
+    #filter-bar {
+      display: none;
+      gap: 8px;
+      padding: 14px 32px;
+      border-bottom: 1px solid #1a1a1a;
+      flex-wrap: wrap;
+    }
+
+    #filter-bar.visible { display: flex; }
+
+    .filter-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      border: 1px solid #333;
+      background: transparent;
+      color: #888;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover { border-color: #555; color: #ccc; }
+    .filter-btn.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+
+    /* Gallery */
+    #gallery {
+      padding: 24px 32px;
+      columns: 4 200px;
+      column-gap: 14px;
+    }
+
+    .media-card {
+      break-inside: avoid;
+      margin-bottom: 14px;
+      background: #1a1a1a;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid #252525;
+      transition: border-color 0.15s;
+    }
+
+    .media-card:hover { border-color: #444; }
+
+    .media-card .thumb {
+      width: 100%;
+      display: block;
+      cursor: pointer;
+    }
+
+    .media-card img.thumb {
+      object-fit: cover;
+      max-height: 340px;
+    }
+
+    .media-card video.thumb {
+      max-height: 280px;
+    }
+
+    .card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 10px;
+    }
+
+    .file-name {
+      font-size: 12px;
+      color: #777;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .dl-btn {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #252525;
+      border: 1px solid #333;
+      color: #aaa;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .dl-btn:hover { background: #2563eb; color: #fff; border-color: #2563eb; }
+
+    /* Lightbox */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+
+    #lightbox.open { display: flex; }
+
+    #lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #lightbox-inner img,
+    #lightbox-inner video {
+      max-width: 90vw;
+      max-height: 80vh;
+      border-radius: 8px;
+      object-fit: contain;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: -40px;
+      right: 0;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    #lightbox-close:hover { color: #fff; }
+
+    #lightbox-name {
+      font-size: 13px;
+      color: #888;
+      max-width: 80vw;
+      text-align: center;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Loading */
+    #loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 80px 32px;
+    }
+
+    #loading.visible { display: flex; }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #333;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #loading p { font-size: 14px; color: #666; }
+
+    /* Error */
+    #error-msg {
+      display: none;
+      margin: 40px auto;
+      max-width: 420px;
+      padding: 16px 20px;
+      background: #1e1010;
+      border: 1px solid #5c2020;
+      border-radius: 10px;
+      font-size: 14px;
+      color: #f87171;
+      text-align: center;
+    }
+
+    #error-msg.visible { display: block; }
+
+    @media (max-width: 600px) {
+      #gallery { columns: 2 150px; padding: 16px; }
+      header { padding: 14px 16px; }
+      #stats-bar, #filter-bar { padding: 10px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>ZIP Viewer</h1>
+  <button id="download-all-btn" onclick="downloadAll()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7 10 12 15 17 10"/>
+      <line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+    전체 다운로드
+  </button>
+</header>
+
+<div id="drop-zone">
+  <input type="file" id="file-input" accept=".zip" />
+  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#aaa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+    <polyline points="17 8 12 3 7 8"/>
+    <line x1="12" y1="3" x2="12" y2="15"/>
+  </svg>
+  <p>ZIP 파일을 여기에 드래그하거나 클릭하여 선택</p>
+  <span>이미지 및 동영상 파일을 자동으로 표시합니다</span>
+</div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p id="loading-text">ZIP 파일 분석 중...</p>
+</div>
+
+<div id="error-msg"></div>
+
+<div id="stats-bar">
+  <span>파일명: <strong id="stat-zip-name"></strong></span>
+  <span>이미지: <strong id="stat-images">0</strong>개</span>
+  <span>동영상: <strong id="stat-videos">0</strong>개</span>
+  <span>총 크기: <strong id="stat-size"></strong></span>
+</div>
+
+<div id="filter-bar">
+  <button class="filter-btn active" data-filter="all" onclick="applyFilter(this)">전체</button>
+  <button class="filter-btn" data-filter="image" onclick="applyFilter(this)">이미지</button>
+  <button class="filter-btn" data-filter="video" onclick="applyFilter(this)">동영상</button>
+</div>
+
+<div id="gallery"></div>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox(event)">
+  <div id="lightbox-inner">
+    <button id="lightbox-close" onclick="closeLightbox()">&#215;</button>
+    <div id="lightbox-content"></div>
+    <div id="lightbox-name"></div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+  const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','bmp','svg','avif','tiff','tif','ico']);
+  const VIDEO_EXTS = new Set(['mp4','webm','ogg','mov','mkv','avi','m4v','3gp','flv']);
+
+  let allFiles = []; // { name, type, blob, url, size }
+  let currentFilter = 'all';
+
+  function getExt(name) {
+    return name.split('.').pop().toLowerCase();
+  }
+
+  function isImage(name) { return IMAGE_EXTS.has(getExt(name)); }
+  function isVideo(name) { return VIDEO_EXTS.has(getExt(name)); }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  // Drop zone events
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+
+  dropZone.addEventListener('dragover', e => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file) processZip(file);
+  });
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) processZip(e.target.files[0]);
+  });
+
+  function setLoading(text) {
+    document.getElementById('loading-text').textContent = text || 'ZIP 파일 분석 중...';
+    document.getElementById('loading').classList.add('visible');
+    document.getElementById('drop-zone').style.display = 'none';
+    document.getElementById('gallery').innerHTML = '';
+    document.getElementById('stats-bar').classList.remove('visible');
+    document.getElementById('filter-bar').classList.remove('visible');
+    document.getElementById('download-all-btn').classList.remove('visible');
+    document.getElementById('error-msg').classList.remove('visible');
+  }
+
+  function hideLoading() {
+    document.getElementById('loading').classList.remove('visible');
+  }
+
+  function showError(msg) {
+    hideLoading();
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.classList.add('visible');
+    document.getElementById('drop-zone').style.display = 'flex';
+  }
+
+  async function processZip(file) {
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      showError('ZIP 파일만 지원합니다.');
+      return;
+    }
+
+    setLoading('ZIP 파일 열기...');
+
+    // Revoke previous object URLs
+    allFiles.forEach(f => URL.revokeObjectURL(f.url));
+    allFiles = [];
+
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const entries = [];
+
+      zip.forEach((path, entry) => {
+        if (entry.dir) return;
+        const name = path.split('/').pop();
+        if (isImage(name) || isVideo(name)) {
+          entries.push({ path, entry, name });
+        }
+      });
+
+      if (entries.length === 0) {
+        showError('ZIP 파일 안에 지원하는 이미지 또는 동영상 파일이 없습니다.');
+        return;
+      }
+
+      document.getElementById('loading-text').textContent = `파일 처리 중... (0 / ${entries.length})`;
+
+      for (let i = 0; i < entries.length; i++) {
+        const { entry, name } = entries[i];
+        document.getElementById('loading-text').textContent = `파일 처리 중... (${i + 1} / ${entries.length})`;
+
+        const blob = await entry.async('blob');
+        const mimeBlob = fixMime(blob, name);
+        const url = URL.createObjectURL(mimeBlob);
+        const type = isImage(name) ? 'image' : 'video';
+
+        allFiles.push({ name, type, blob: mimeBlob, url, size: blob.size });
+      }
+
+      hideLoading();
+      renderStats(file.name);
+      renderGallery();
+
+    } catch (err) {
+      showError('ZIP 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
+    }
+  }
+
+  function fixMime(blob, name) {
+    const ext = getExt(name);
+    const mimeMap = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
+      svg: 'image/svg+xml', avif: 'image/avif', tiff: 'image/tiff',
+      tif: 'image/tiff', ico: 'image/x-icon',
+      mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg',
+      mov: 'video/quicktime', mkv: 'video/x-matroska',
+      avi: 'video/x-msvideo', m4v: 'video/mp4',
+      '3gp': 'video/3gpp', flv: 'video/x-flv',
+    };
+    const mime = mimeMap[ext];
+    return mime ? blob.slice(0, blob.size, mime) : blob;
+  }
+
+  function renderStats(zipName) {
+    const images = allFiles.filter(f => f.type === 'image').length;
+    const videos = allFiles.filter(f => f.type === 'video').length;
+    const totalSize = allFiles.reduce((s, f) => s + f.size, 0);
+
+    document.getElementById('stat-zip-name').textContent = zipName;
+    document.getElementById('stat-images').textContent = images;
+    document.getElementById('stat-videos').textContent = videos;
+    document.getElementById('stat-size').textContent = formatSize(totalSize);
+    document.getElementById('stats-bar').classList.add('visible');
+    document.getElementById('filter-bar').classList.add('visible');
+    document.getElementById('download-all-btn').classList.add('visible');
+    document.getElementById('drop-zone').style.display = 'none';
+  }
+
+  function renderGallery() {
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '';
+
+    const filtered = currentFilter === 'all'
+      ? allFiles
+      : allFiles.filter(f => f.type === currentFilter);
+
+    filtered.forEach((file, idx) => {
+      const card = document.createElement('div');
+      card.className = 'media-card';
+      card.dataset.type = file.type;
+
+      let mediaEl;
+      if (file.type === 'image') {
+        mediaEl = document.createElement('img');
+        mediaEl.src = file.url;
+        mediaEl.alt = file.name;
+        mediaEl.loading = 'lazy';
+      } else {
+        mediaEl = document.createElement('video');
+        mediaEl.src = file.url;
+        mediaEl.controls = true;
+        mediaEl.preload = 'metadata';
+      }
+      mediaEl.className = 'thumb';
+      mediaEl.onclick = () => openLightbox(file);
+
+      const footer = document.createElement('div');
+      footer.className = 'card-footer';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'file-name';
+      nameEl.title = file.name;
+      nameEl.textContent = file.name;
+
+      const dlBtn = document.createElement('button');
+      dlBtn.className = 'dl-btn';
+      dlBtn.title = '다운로드';
+      dlBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+      dlBtn.onclick = (e) => { e.stopPropagation(); downloadFile(file); };
+
+      footer.appendChild(nameEl);
+      footer.appendChild(dlBtn);
+      card.appendChild(mediaEl);
+      card.appendChild(footer);
+      gallery.appendChild(card);
+    });
+  }
+
+  function applyFilter(btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderGallery();
+  }
+
+  function downloadFile(file) {
+    const a = document.createElement('a');
+    a.href = file.url;
+    a.download = file.name;
+    a.click();
+  }
+
+  async function downloadAll() {
+    const btn = document.getElementById('download-all-btn');
+    btn.disabled = true;
+    btn.textContent = '압축 중...';
+
+    try {
+      const zip = new JSZip();
+      allFiles.forEach(f => zip.file(f.name, f.blob));
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'media_files.zip';
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 다운로드`;
+    }
+  }
+
+  function openLightbox(file) {
+    const content = document.getElementById('lightbox-content');
+    content.innerHTML = '';
+
+    let el;
+    if (file.type === 'image') {
+      el = document.createElement('img');
+      el.src = file.url;
+      el.alt = file.name;
+    } else {
+      el = document.createElement('video');
+      el.src = file.url;
+      el.controls = true;
+      el.autoplay = true;
+    }
+    content.appendChild(el);
+    document.getElementById('lightbox-name').textContent = file.name;
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox(e) {
+    if (e && e.target !== document.getElementById('lightbox') && e.target !== document.getElementById('lightbox-close')) return;
+    const video = document.querySelector('#lightbox-content video');
+    if (video) video.pause();
+    document.getElementById('lightbox').classList.remove('open');
+    document.getElementById('lightbox-content').innerHTML = '';
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLightbox({ target: document.getElementById('lightbox') });
+  });
+</script>
+</body>
+</html>
