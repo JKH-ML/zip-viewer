@@ -20,10 +20,17 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 12px;
       position: sticky;
       top: 0;
       background: #0f0f0f;
       z-index: 100;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     header h1 {
@@ -31,6 +38,23 @@
       font-weight: 600;
       color: #fff;
     }
+
+    #home-btn {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: transparent;
+      color: #888;
+      border: 1px solid #333;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    #home-btn:hover { border-color: #555; color: #ccc; }
+    #home-btn.visible { display: flex; }
 
     #download-all-btn {
       display: none;
@@ -105,7 +129,6 @@
     }
 
     #stats-bar.visible { display: flex; }
-
     #stats-bar strong { color: #ccc; }
 
     #filter-bar {
@@ -205,11 +228,11 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.88);
+      background: rgba(0,0,0,0.92);
       z-index: 999;
       align-items: center;
       justify-content: center;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(6px);
     }
 
     #lightbox.open { display: flex; }
@@ -224,9 +247,15 @@
       gap: 12px;
     }
 
+    #lightbox-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
     #lightbox-inner img,
     #lightbox-inner video {
-      max-width: 90vw;
+      max-width: 82vw;
       max-height: 80vh;
       border-radius: 8px;
       object-fit: contain;
@@ -234,22 +263,62 @@
 
     #lightbox-close {
       position: absolute;
-      top: -40px;
+      top: -44px;
       right: 0;
       background: none;
       border: none;
       color: #aaa;
-      font-size: 28px;
+      font-size: 30px;
       cursor: pointer;
       line-height: 1;
+      padding: 4px;
     }
 
     #lightbox-close:hover { color: #fff; }
 
+    /* Prev / Next arrows */
+    .lb-arrow {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: #ccc;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      z-index: 1000;
+      user-select: none;
+    }
+
+    .lb-arrow:hover { background: rgba(255,255,255,0.18); color: #fff; }
+    .lb-arrow:disabled { opacity: 0.2; cursor: default; pointer-events: none; }
+
+    #lb-prev { left: 20px; }
+    #lb-next { right: 20px; }
+
+    /* Counter + name row */
+    #lightbox-footer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    #lightbox-counter {
+      font-size: 12px;
+      color: #555;
+      white-space: nowrap;
+    }
+
     #lightbox-name {
       font-size: 13px;
       color: #888;
-      max-width: 80vw;
+      max-width: 70vw;
       text-align: center;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -300,13 +369,26 @@
       #gallery { columns: 2 150px; padding: 16px; }
       header { padding: 14px 16px; }
       #stats-bar, #filter-bar { padding: 10px 16px; }
+      #lb-prev { left: 8px; }
+      #lb-next { right: 8px; }
+      .lb-arrow { width: 38px; height: 38px; }
+      #lightbox-inner img, #lightbox-inner video { max-width: 78vw; }
     }
   </style>
 </head>
 <body>
 
 <header>
-  <h1>ZIP Viewer</h1>
+  <div class="header-left">
+    <h1>ZIP Viewer</h1>
+    <button id="home-btn" onclick="goHome()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
+        <polyline points="9 21 9 12 15 12 15 21"/>
+      </svg>
+      새 ZIP 열기
+    </button>
+  </div>
   <button id="download-all-btn" onclick="downloadAll()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -351,12 +433,21 @@
 <div id="gallery"></div>
 
 <!-- Lightbox -->
-<div id="lightbox" onclick="closeLightbox(event)">
+<div id="lightbox" onclick="onLightboxBgClick(event)">
+  <button class="lb-arrow" id="lb-prev" onclick="lbNavigate(-1)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </button>
   <div id="lightbox-inner">
     <button id="lightbox-close" onclick="closeLightbox()">&#215;</button>
     <div id="lightbox-content"></div>
-    <div id="lightbox-name"></div>
+    <div id="lightbox-footer">
+      <span id="lightbox-counter"></span>
+      <div id="lightbox-name"></div>
+    </div>
   </div>
+  <button class="lb-arrow" id="lb-next" onclick="lbNavigate(1)">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  </button>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -364,13 +455,11 @@
   const IMAGE_EXTS = new Set(['jpg','jpeg','png','gif','webp','bmp','svg','avif','tiff','tif','ico']);
   const VIDEO_EXTS = new Set(['mp4','webm','ogg','mov','mkv','avi','m4v','3gp','flv']);
 
-  let allFiles = []; // { name, type, blob, url, size }
+  let allFiles = [];
   let currentFilter = 'all';
+  let lbIndex = -1; // current lightbox index into filteredFiles()
 
-  function getExt(name) {
-    return name.split('.').pop().toLowerCase();
-  }
-
+  function getExt(name) { return name.split('.').pop().toLowerCase(); }
   function isImage(name) { return IMAGE_EXTS.has(getExt(name)); }
   function isVideo(name) { return VIDEO_EXTS.has(getExt(name)); }
 
@@ -380,27 +469,23 @@
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  // Drop zone events
+  function filteredFiles() {
+    return currentFilter === 'all' ? allFiles : allFiles.filter(f => f.type === currentFilter);
+  }
+
+  // Drop zone
   const dropZone = document.getElementById('drop-zone');
   const fileInput = document.getElementById('file-input');
 
-  dropZone.addEventListener('dragover', e => {
-    e.preventDefault();
-    dropZone.classList.add('dragover');
-  });
-
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
   dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-
   dropZone.addEventListener('drop', e => {
     e.preventDefault();
     dropZone.classList.remove('dragover');
     const file = e.dataTransfer.files[0];
     if (file) processZip(file);
   });
-
-  fileInput.addEventListener('change', e => {
-    if (e.target.files[0]) processZip(e.target.files[0]);
-  });
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) processZip(e.target.files[0]); });
 
   function setLoading(text) {
     document.getElementById('loading-text').textContent = text || 'ZIP 파일 분석 중...';
@@ -410,12 +495,11 @@
     document.getElementById('stats-bar').classList.remove('visible');
     document.getElementById('filter-bar').classList.remove('visible');
     document.getElementById('download-all-btn').classList.remove('visible');
+    document.getElementById('home-btn').classList.remove('visible');
     document.getElementById('error-msg').classList.remove('visible');
   }
 
-  function hideLoading() {
-    document.getElementById('loading').classList.remove('visible');
-  }
+  function hideLoading() { document.getElementById('loading').classList.remove('visible'); }
 
   function showError(msg) {
     hideLoading();
@@ -425,53 +509,52 @@
     document.getElementById('drop-zone').style.display = 'flex';
   }
 
+  function goHome() {
+    allFiles.forEach(f => URL.revokeObjectURL(f.url));
+    allFiles = [];
+    currentFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+    document.getElementById('gallery').innerHTML = '';
+    document.getElementById('stats-bar').classList.remove('visible');
+    document.getElementById('filter-bar').classList.remove('visible');
+    document.getElementById('download-all-btn').classList.remove('visible');
+    document.getElementById('home-btn').classList.remove('visible');
+    document.getElementById('error-msg').classList.remove('visible');
+    document.getElementById('drop-zone').style.display = 'flex';
+    fileInput.value = '';
+  }
+
   async function processZip(file) {
-    if (!file.name.toLowerCase().endsWith('.zip')) {
-      showError('ZIP 파일만 지원합니다.');
-      return;
-    }
-
+    if (!file.name.toLowerCase().endsWith('.zip')) { showError('ZIP 파일만 지원합니다.'); return; }
     setLoading('ZIP 파일 열기...');
-
-    // Revoke previous object URLs
     allFiles.forEach(f => URL.revokeObjectURL(f.url));
     allFiles = [];
 
     try {
       const zip = await JSZip.loadAsync(file);
       const entries = [];
-
       zip.forEach((path, entry) => {
         if (entry.dir) return;
         const name = path.split('/').pop();
-        if (isImage(name) || isVideo(name)) {
-          entries.push({ path, entry, name });
-        }
+        if (isImage(name) || isVideo(name)) entries.push({ path, entry, name });
       });
 
-      if (entries.length === 0) {
-        showError('ZIP 파일 안에 지원하는 이미지 또는 동영상 파일이 없습니다.');
-        return;
-      }
+      if (entries.length === 0) { showError('ZIP 파일 안에 지원하는 이미지 또는 동영상 파일이 없습니다.'); return; }
 
       document.getElementById('loading-text').textContent = `파일 처리 중... (0 / ${entries.length})`;
 
       for (let i = 0; i < entries.length; i++) {
         const { entry, name } = entries[i];
         document.getElementById('loading-text').textContent = `파일 처리 중... (${i + 1} / ${entries.length})`;
-
         const blob = await entry.async('blob');
         const mimeBlob = fixMime(blob, name);
         const url = URL.createObjectURL(mimeBlob);
-        const type = isImage(name) ? 'image' : 'video';
-
-        allFiles.push({ name, type, blob: mimeBlob, url, size: blob.size });
+        allFiles.push({ name, type: isImage(name) ? 'image' : 'video', blob: mimeBlob, url, size: blob.size });
       }
 
       hideLoading();
       renderStats(file.name);
       renderGallery();
-
     } catch (err) {
       showError('ZIP 파일을 읽는 중 오류가 발생했습니다: ' + err.message);
     }
@@ -480,43 +563,35 @@
   function fixMime(blob, name) {
     const ext = getExt(name);
     const mimeMap = {
-      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
-      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp',
-      svg: 'image/svg+xml', avif: 'image/avif', tiff: 'image/tiff',
-      tif: 'image/tiff', ico: 'image/x-icon',
-      mp4: 'video/mp4', webm: 'video/webm', ogg: 'video/ogg',
-      mov: 'video/quicktime', mkv: 'video/x-matroska',
-      avi: 'video/x-msvideo', m4v: 'video/mp4',
-      '3gp': 'video/3gpp', flv: 'video/x-flv',
+      jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',
+      webp:'image/webp',bmp:'image/bmp',svg:'image/svg+xml',avif:'image/avif',
+      tiff:'image/tiff',tif:'image/tiff',ico:'image/x-icon',
+      mp4:'video/mp4',webm:'video/webm',ogg:'video/ogg',mov:'video/quicktime',
+      mkv:'video/x-matroska',avi:'video/x-msvideo',m4v:'video/mp4',
+      '3gp':'video/3gpp',flv:'video/x-flv',
     };
     const mime = mimeMap[ext];
     return mime ? blob.slice(0, blob.size, mime) : blob;
   }
 
   function renderStats(zipName) {
-    const images = allFiles.filter(f => f.type === 'image').length;
-    const videos = allFiles.filter(f => f.type === 'video').length;
-    const totalSize = allFiles.reduce((s, f) => s + f.size, 0);
-
     document.getElementById('stat-zip-name').textContent = zipName;
-    document.getElementById('stat-images').textContent = images;
-    document.getElementById('stat-videos').textContent = videos;
-    document.getElementById('stat-size').textContent = formatSize(totalSize);
+    document.getElementById('stat-images').textContent = allFiles.filter(f => f.type === 'image').length;
+    document.getElementById('stat-videos').textContent = allFiles.filter(f => f.type === 'video').length;
+    document.getElementById('stat-size').textContent = formatSize(allFiles.reduce((s, f) => s + f.size, 0));
     document.getElementById('stats-bar').classList.add('visible');
     document.getElementById('filter-bar').classList.add('visible');
     document.getElementById('download-all-btn').classList.add('visible');
+    document.getElementById('home-btn').classList.add('visible');
     document.getElementById('drop-zone').style.display = 'none';
   }
 
   function renderGallery() {
     const gallery = document.getElementById('gallery');
     gallery.innerHTML = '';
+    const files = filteredFiles();
 
-    const filtered = currentFilter === 'all'
-      ? allFiles
-      : allFiles.filter(f => f.type === currentFilter);
-
-    filtered.forEach((file, idx) => {
+    files.forEach((file, idx) => {
       const card = document.createElement('div');
       card.className = 'media-card';
       card.dataset.type = file.type;
@@ -534,7 +609,7 @@
         mediaEl.preload = 'metadata';
       }
       mediaEl.className = 'thumb';
-      mediaEl.onclick = () => openLightbox(file);
+      mediaEl.onclick = () => openLightbox(idx);
 
       const footer = document.createElement('div');
       footer.className = 'card-footer';
@@ -548,7 +623,7 @@
       dlBtn.className = 'dl-btn';
       dlBtn.title = '다운로드';
       dlBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-      dlBtn.onclick = (e) => { e.stopPropagation(); downloadFile(file); };
+      dlBtn.onclick = e => { e.stopPropagation(); downloadFile(file); };
 
       footer.appendChild(nameEl);
       footer.appendChild(dlBtn);
@@ -576,7 +651,6 @@
     const btn = document.getElementById('download-all-btn');
     btn.disabled = true;
     btn.textContent = '압축 중...';
-
     try {
       const zip = new JSZip();
       allFiles.forEach(f => zip.file(f.name, f.blob));
@@ -593,8 +667,23 @@
     }
   }
 
-  function openLightbox(file) {
+  // Lightbox
+  function openLightbox(idx) {
+    lbIndex = idx;
+    renderLightboxItem();
+    document.getElementById('lightbox').classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function renderLightboxItem() {
+    const files = filteredFiles();
+    const file = files[lbIndex];
+    if (!file) return;
+
     const content = document.getElementById('lightbox-content');
+    // pause any playing video before replacing
+    const prevVideo = content.querySelector('video');
+    if (prevVideo) prevVideo.pause();
     content.innerHTML = '';
 
     let el;
@@ -609,22 +698,39 @@
       el.autoplay = true;
     }
     content.appendChild(el);
+
     document.getElementById('lightbox-name').textContent = file.name;
-    document.getElementById('lightbox').classList.add('open');
-    document.body.style.overflow = 'hidden';
+    document.getElementById('lightbox-counter').textContent = `${lbIndex + 1} / ${files.length}`;
+    document.getElementById('lb-prev').disabled = lbIndex === 0;
+    document.getElementById('lb-next').disabled = lbIndex === files.length - 1;
   }
 
-  function closeLightbox(e) {
-    if (e && e.target !== document.getElementById('lightbox') && e.target !== document.getElementById('lightbox-close')) return;
+  function lbNavigate(dir) {
+    const files = filteredFiles();
+    const next = lbIndex + dir;
+    if (next < 0 || next >= files.length) return;
+    lbIndex = next;
+    renderLightboxItem();
+  }
+
+  function closeLightbox() {
     const video = document.querySelector('#lightbox-content video');
     if (video) video.pause();
     document.getElementById('lightbox').classList.remove('open');
     document.getElementById('lightbox-content').innerHTML = '';
     document.body.style.overflow = '';
+    lbIndex = -1;
+  }
+
+  function onLightboxBgClick(e) {
+    if (e.target === document.getElementById('lightbox')) closeLightbox();
   }
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeLightbox({ target: document.getElementById('lightbox') });
+    if (!document.getElementById('lightbox').classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowLeft') lbNavigate(-1);
+    if (e.key === 'ArrowRight') lbNavigate(1);
   });
 </script>
 </body>
