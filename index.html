@@ -374,8 +374,8 @@
 
     #lightbox-inner img,
     #lightbox-inner video {
-      max-width: 82vw;
-      max-height: 80vh;
+      max-width: 92vw;
+      max-height: 88vh;
       border-radius: 8px;
       object-fit: contain;
     }
@@ -425,6 +425,24 @@
       align-items: center;
       gap: 16px;
     }
+
+    #lb-save-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 16px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    #lb-save-btn:hover { background: #1d4ed8; }
 
     #lightbox-counter {
       font-size: 12px;
@@ -506,7 +524,7 @@
       #lb-prev { left: 8px; }
       #lb-next { right: 8px; }
       .lb-arrow { width: 38px; height: 38px; }
-      #lightbox-inner img, #lightbox-inner video { max-width: 78vw; }
+      #lightbox-inner img, #lightbox-inner video { max-width: 86vw; max-height: 80vh; }
       #zip-list-section { padding: 20px 16px; }
     }
   </style>
@@ -607,6 +625,10 @@
     <div id="lightbox-footer">
       <span id="lightbox-counter"></span>
       <div id="lightbox-name"></div>
+      <button id="lb-save-btn" onclick="lbSaveCurrent()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        저장
+      </button>
     </div>
   </div>
   <button class="lb-arrow" id="lb-next" onclick="lbNavigate(1)">
@@ -974,6 +996,11 @@
     if (next < 0 || next >= files.length) return;
     lbIndex = next;
     renderLightboxItem();
+  }
+
+  function lbSaveCurrent() {
+    const file = filteredFiles()[lbIndex];
+    if (file) downloadFile(file);
   }
 
   function closeLightbox() {
