@@ -521,7 +521,7 @@
     #comfy-toggle.visible { display: flex; }
 
     @media (max-width: 700px) {
-      #comfy-panel { width: 100%; border-left: none; border-top: 1px solid #222; max-height: 40vh; }
+      #comfy-panel, #snail-panel { width: 100%; border-left: none; border-top: 1px solid #222; max-height: 40vh; }
       #lightbox.open { flex-direction: column; }
     }
 
@@ -589,6 +589,159 @@
       #lb-prev { left: 8px; }
       #lb-next { right: 8px; }
       .lb-arrow { width: 38px; height: 38px; }
+    }
+
+    /* Snail decode panel */
+    #snail-panel {
+      display: none;
+      width: 340px;
+      flex-shrink: 0;
+      flex-direction: column;
+      background: #111;
+      border-left: 1px solid #222;
+      overflow-y: auto;
+    }
+
+    #snail-panel.visible { display: flex; }
+
+    #snail-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid #1e1e1e;
+      flex-shrink: 0;
+    }
+
+    #snail-panel-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #aaa;
+      letter-spacing: 0.04em;
+    }
+
+    #snail-panel-close {
+      background: none;
+      border: none;
+      color: #555;
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 4px;
+    }
+
+    #snail-panel-close:hover { color: #ccc; }
+
+    #snail-panel-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .snail-pw-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .snail-pw-input {
+      flex: 1;
+      padding: 7px 10px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 7px;
+      color: #ccc;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .snail-pw-input:focus { border-color: #2563eb; }
+
+    .snail-decode-btn {
+      padding: 7px 14px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .snail-decode-btn:hover { background: #1d4ed8; }
+    .snail-decode-btn:disabled { background: #333; color: #666; cursor: default; }
+
+    #snail-status {
+      font-size: 12px;
+      color: #666;
+      min-height: 18px;
+    }
+
+    #snail-status.error { color: #f87171; }
+    #snail-status.ok { color: #86efac; }
+
+    #snail-result {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    #snail-result.visible { display: flex; }
+
+    #snail-result img, #snail-result video {
+      width: 100%;
+      border-radius: 8px;
+      border: 1px solid #252525;
+    }
+
+    .snail-save-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 7px 0;
+      background: #1a2a1a;
+      border: 1px solid #2d4a2d;
+      border-radius: 7px;
+      color: #86efac;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .snail-save-btn:hover { background: #1f3a1f; }
+
+    #snail-toggle {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 12px;
+      background: transparent;
+      color: #86efac;
+      border: 1px solid #2d4a2d;
+      border-radius: 7px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    #snail-toggle:hover { background: rgba(134,239,172,0.08); }
+    #snail-toggle.visible { display: flex; }
+
+    .snail-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #86efac;
+      margin-bottom: 2px;
     }
   </style>
 </head>
@@ -674,6 +827,10 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
         워크플로우
       </button>
+      <button id="snail-toggle" onclick="toggleSnailPanel()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 8v3l2 2"/></svg>
+        🐌 숨김 데이터
+      </button>
       <button id="lb-save-btn" onclick="lbSaveCurrent()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         저장
@@ -686,6 +843,27 @@
       <button id="comfy-panel-close" onclick="toggleComfyPanel()">&#215;</button>
     </div>
     <div id="comfy-panel-body"></div>
+  </div>
+  <div id="snail-panel">
+    <div id="snail-panel-header">
+      <span id="snail-panel-title">🐌 숨김 데이터 추출</span>
+      <button id="snail-panel-close" onclick="toggleSnailPanel()">&#215;</button>
+    </div>
+    <div id="snail-panel-body">
+      <div class="snail-label">비밀번호 (없으면 빈칸)</div>
+      <div class="snail-pw-row">
+        <input type="password" id="snail-pw-input" class="snail-pw-input" placeholder="password" />
+        <button class="snail-decode-btn" id="snail-decode-btn" onclick="snailDecode()">추출</button>
+      </div>
+      <div id="snail-status"></div>
+      <div id="snail-result">
+        <div id="snail-result-media"></div>
+        <button class="snail-save-btn" id="snail-save-btn" onclick="snailSave()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          숨김 파일 저장
+        </button>
+      </div>
+    </div>
   </div>
   <button class="lb-arrow" id="lb-next" onclick="lbNavigate(1)">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -1329,6 +1507,18 @@ const chips = [];
       document.getElementById('comfy-panel').classList.remove('visible');
       document.getElementById('comfy-panel-body').innerHTML = '';
     }
+
+    // Snail toggle: only for images (PNG LSB data could be in any image but PNG most common)
+    const snailToggleBtn = document.getElementById('snail-toggle');
+    if (file.type === 'image') {
+      snailToggleBtn.classList.add('visible');
+    } else {
+      snailToggleBtn.classList.remove('visible');
+      document.getElementById('snail-panel').classList.remove('visible');
+      snailPanelOpen = false;
+    }
+    // Reset snail result when navigating to a new image
+    resetSnailResult();
   }
 
   function lbNavigate(dir) {
@@ -1349,9 +1539,12 @@ const chips = [];
     document.getElementById('lightbox-content').innerHTML = '';
     document.getElementById('comfy-panel').classList.remove('visible');
     document.getElementById('comfy-panel-body').innerHTML = '';
+    document.getElementById('snail-panel').classList.remove('visible');
     document.body.style.overflow = '';
     lbIndex = -1;
     comfyPanelOpen = true;
+    snailPanelOpen = false;
+    resetSnailResult();
   }
 
   function onLightboxBgClick(e) {
@@ -1368,9 +1561,227 @@ const chips = [];
   document.addEventListener('wheel', e => {
     if (!document.getElementById('lightbox').classList.contains('open')) return;
     if (e.target.closest('#comfy-panel')) return;
+    if (e.target.closest('#snail-panel')) return;
     e.preventDefault();
     lbNavigate(e.deltaY > 0 ? 1 : -1);
   }, { passive: false });
+
+  // --- SnailShell LSB Steganography Decoder ---
+
+  const SNAIL_MAGIC = [0x53, 0x4E, 0x41, 0x49, 0x4C]; // "SNAIL"
+  const SNAIL_SKIP_W_RATIO = 0.40;
+  const SNAIL_SKIP_H_RATIO = 0.08;
+
+  let snailPanelOpen = false;
+  let snailExtractedBlob = null;
+  let snailExtractedExt = null;
+  let snailResultObjectUrl = null;
+
+  function toggleSnailPanel() {
+    snailPanelOpen = !snailPanelOpen;
+    const panel = document.getElementById('snail-panel');
+    if (snailPanelOpen) {
+      panel.classList.add('visible');
+      // Reset state when opening for a new image
+      resetSnailResult();
+    } else {
+      panel.classList.remove('visible');
+    }
+  }
+
+  function resetSnailResult() {
+    document.getElementById('snail-status').textContent = '';
+    document.getElementById('snail-status').className = '';
+    document.getElementById('snail-result').classList.remove('visible');
+    document.getElementById('snail-result-media').innerHTML = '';
+    if (snailResultObjectUrl) {
+      URL.revokeObjectURL(snailResultObjectUrl);
+      snailResultObjectUrl = null;
+    }
+    snailExtractedBlob = null;
+    snailExtractedExt = null;
+  }
+
+  function setSnailStatus(msg, type) {
+    const el = document.getElementById('snail-status');
+    el.textContent = msg;
+    el.className = type || '';
+  }
+
+  async function imageBlobToPixels(blob) {
+    const bmp = await createImageBitmap(blob);
+    const canvas = new OffscreenCanvas(bmp.width, bmp.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bmp, 0, 0);
+    bmp.close();
+    return ctx.getImageData(0, 0, canvas.width, canvas.height);
+  }
+
+  function snailExtractLsb(imageData) {
+    const { data, width: w, height: h } = imageData;
+
+    // Read bit-depth from pixel (0,0) Red channel lower 2 bits
+    const bitMode = data[0] & 0x3; // R channel of first pixel
+    const lsbBits = [2, 4, 8][bitMode] ?? 4;
+
+    const skipW = Math.floor(w * SNAIL_SKIP_W_RATIO);
+    const skipH = Math.floor(h * SNAIL_SKIP_H_RATIO);
+    const divisor = 1 << lsbBits;
+    const mask = divisor - 1;
+
+    // Collect values from usable pixels (excluding skip region and pixel (0,0) Red)
+    const vals = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        for (let c = 0; c < 3; c++) {
+          if (y < skipH && x < skipW) continue;       // skip region
+          if (y === 0 && x === 0 && c === 0) continue; // bit-mode pixel
+          const pixIdx = (y * w + x) * 4 + c;
+          vals.push(data[pixIdx] & mask);
+        }
+      }
+    }
+
+    // Unpack vals into bits (MSB first within each value)
+    const bits = [];
+    for (const v of vals) {
+      for (let b = lsbBits - 1; b >= 0; b--) {
+        bits.push((v >> b) & 1);
+      }
+    }
+
+    // Read header length (first 32 bits = 4 bytes big-endian uint32)
+    function readBits(start, count) {
+      let val = 0;
+      for (let i = 0; i < count; i++) val = (val << 1) | (bits[start + i] ?? 0);
+      return val >>> 0;
+    }
+    function bitsToBytes(start, byteCount) {
+      const out = new Uint8Array(byteCount);
+      for (let i = 0; i < byteCount; i++) out[i] = readBits(start + i * 8, 8);
+      return out;
+    }
+
+    const headerLen = readBits(0, 32);
+    if (headerLen === 0 || headerLen > 200 * 1024 * 1024) return null; // sanity check
+    return bitsToBytes(32, headerLen);
+  }
+
+  async function snailParseHeader(headerBytes, password) {
+    let idx = 0;
+
+    // Check magic "SNAIL"
+    for (let i = 0; i < 5; i++) {
+      if (headerBytes[idx++] !== SNAIL_MAGIC[i]) throw new Error('Magic signature mismatch — not a SnailShell image');
+    }
+
+    const hasPwd = headerBytes[idx++] === 1;
+    let salt = null;
+
+    if (hasPwd) {
+      const pwdHash = headerBytes.slice(idx, idx + 32); idx += 32;
+      salt = headerBytes.slice(idx, idx + 16); idx += 16;
+
+      // Verify password
+      const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+      const checkInput = new TextEncoder().encode(password + saltHex);
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', checkInput));
+      if (!digest.every((b, i) => b === pwdHash[i])) throw new Error('비밀번호가 틀렸습니다');
+    }
+
+    const extLen = headerBytes[idx++];
+    const ext = new TextDecoder().decode(headerBytes.slice(idx, idx + extLen)); idx += extLen;
+    const dataLen = ((headerBytes[idx] << 24) | (headerBytes[idx+1] << 16) | (headerBytes[idx+2] << 8) | headerBytes[idx+3]) >>> 0; idx += 4;
+    let payload = headerBytes.slice(idx, idx + dataLen);
+
+    if (hasPwd) {
+      payload = await snailDecrypt(payload, password, salt);
+    }
+
+    return { data: payload, ext };
+  }
+
+  async function snailDecrypt(data, password, salt) {
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
+    const out = new Uint8Array(data.length);
+    let counter = 0;
+    let offset = 0;
+    while (offset < data.length) {
+      const combined = new TextEncoder().encode(password + saltHex + String(counter));
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', combined));
+      for (let i = 0; i < digest.length && offset < data.length; i++, offset++) {
+        out[offset] = data[offset] ^ digest[i];
+      }
+      counter++;
+    }
+    return out;
+  }
+
+  async function snailDecode() {
+    const file = filteredFiles()[lbIndex];
+    if (!file || file.type !== 'image') {
+      setSnailStatus('이미지 파일에만 사용할 수 있습니다.', 'error');
+      return;
+    }
+
+    const password = document.getElementById('snail-pw-input').value;
+    const btn = document.getElementById('snail-decode-btn');
+    btn.disabled = true;
+    setSnailStatus('분석 중...', '');
+    resetSnailResult();
+
+    try {
+      const imageData = await imageBlobToPixels(file.blob);
+      setSnailStatus('LSB 추출 중...', '');
+
+      const headerBytes = snailExtractLsb(imageData);
+      if (!headerBytes) throw new Error('데이터를 찾을 수 없습니다.');
+
+      setSnailStatus('헤더 파싱 중...', '');
+      const { data, ext } = await snailParseHeader(headerBytes, password);
+
+      snailExtractedExt = ext;
+      let mimeType;
+      if (ext === 'png') mimeType = 'image/png';
+      else if (ext === 'mp4') mimeType = 'video/mp4';
+      else mimeType = 'application/octet-stream';
+
+      snailExtractedBlob = new Blob([data], { type: mimeType });
+      snailResultObjectUrl = URL.createObjectURL(snailExtractedBlob);
+
+      const mediaContainer = document.getElementById('snail-result-media');
+      if (ext === 'png') {
+        const img = document.createElement('img');
+        img.src = snailResultObjectUrl;
+        mediaContainer.appendChild(img);
+      } else if (ext === 'mp4') {
+        const video = document.createElement('video');
+        video.src = snailResultObjectUrl;
+        video.controls = true;
+        video.style.width = '100%';
+        mediaContainer.appendChild(video);
+      } else {
+        mediaContainer.textContent = `알 수 없는 형식: ${ext}`;
+      }
+
+      document.getElementById('snail-result').classList.add('visible');
+      setSnailStatus(`추출 완료 (${ext.toUpperCase()}, ${formatSize(data.length)})`, 'ok');
+    } catch (err) {
+      setSnailStatus(err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function snailSave() {
+    if (!snailExtractedBlob) return;
+    const file = filteredFiles()[lbIndex];
+    const baseName = file ? file.name.replace(/\.[^.]+$/, '') : 'snail_extracted';
+    const a = document.createElement('a');
+    a.href = snailResultObjectUrl;
+    a.download = `${baseName}_snail.${snailExtractedExt}`;
+    a.click();
+  }
 </script>
 </body>
 </html>
