@@ -591,6 +591,23 @@
       .lb-arrow { width: 38px; height: 38px; }
     }
 
+    /* Snail badge on gallery card */
+    .media-card { position: relative; }
+
+    .snail-badge {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      background: rgba(0,0,0,0.72);
+      border: 1px solid #2d4a2d;
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 11px;
+      color: #86efac;
+      pointer-events: none;
+      z-index: 2;
+    }
+
     /* Snail decode panel */
     #snail-panel {
       display: none;
@@ -716,25 +733,6 @@
 
     .snail-save-btn:hover { background: #1f3a1f; }
 
-    #snail-toggle {
-      display: none;
-      align-items: center;
-      gap: 5px;
-      padding: 5px 12px;
-      background: transparent;
-      color: #86efac;
-      border: 1px solid #2d4a2d;
-      border-radius: 7px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    #snail-toggle:hover { background: rgba(134,239,172,0.08); }
-    #snail-toggle.visible { display: flex; }
-
     .snail-label {
       font-size: 10px;
       font-weight: 700;
@@ -827,10 +825,6 @@
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
         Workflow
       </button>
-      <button id="snail-toggle" onclick="toggleSnailPanel()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 8v3l2 2"/></svg>
-        🐌 Hidden Data
-      </button>
       <button id="lb-save-btn" onclick="lbSaveCurrent()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Save
@@ -846,16 +840,18 @@
   </div>
   <div id="snail-panel">
     <div id="snail-panel-header">
-      <span id="snail-panel-title">🐌 Extract Hidden Data</span>
+      <span id="snail-panel-title">🐌 Hidden Data</span>
       <button id="snail-panel-close" onclick="toggleSnailPanel()">&#215;</button>
     </div>
     <div id="snail-panel-body">
-      <div class="snail-label">Password (leave blank if none)</div>
-      <div class="snail-pw-row">
-        <input type="password" id="snail-pw-input" class="snail-pw-input" placeholder="password" />
-        <button class="snail-decode-btn" id="snail-decode-btn" onclick="snailDecode()">Extract</button>
-      </div>
       <div id="snail-status"></div>
+      <div id="snail-pw-section" style="display:none">
+        <div class="snail-label">Password required</div>
+        <div class="snail-pw-row">
+          <input type="password" id="snail-pw-input" class="snail-pw-input" placeholder="password" />
+          <button class="snail-decode-btn" id="snail-decode-btn" onclick="snailDecodeWithPassword()">Unlock</button>
+        </div>
+      </div>
       <div id="snail-result">
         <div id="snail-result-media"></div>
         <button class="snail-save-btn" id="snail-save-btn" onclick="snailSave()">
@@ -1332,6 +1328,7 @@ const chips = [];
     renderStats(files.length);
     renderGallery();
     document.getElementById('home-btn').classList.add('visible');
+    snailScanAll();
   }
 
   async function appendZips(files) {
@@ -1353,6 +1350,7 @@ const chips = [];
     // Navigate lightbox to first newly added file
     lbIndex = filteredFiles().length - (allFiles.length - prevLength);
     renderLightboxItem();
+    snailScanAll();
   }
 
   function fixMime(blob, name) {
@@ -1421,6 +1419,12 @@ const chips = [];
       dlBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
       dlBtn.onclick = e => { e.stopPropagation(); downloadFile(file); };
 
+      if (file.snailDetected) {
+        const badge = document.createElement('div');
+        badge.className = 'snail-badge';
+        badge.textContent = '🐌';
+        card.appendChild(badge);
+      }
       footer.appendChild(nameEl);
       footer.appendChild(dlBtn);
       card.appendChild(mediaEl);
@@ -1508,17 +1512,14 @@ const chips = [];
       document.getElementById('comfy-panel-body').innerHTML = '';
     }
 
-    // Snail toggle: only for images (PNG LSB data could be in any image but PNG most common)
-    const snailToggleBtn = document.getElementById('snail-toggle');
-    if (file.type === 'image') {
-      snailToggleBtn.classList.add('visible');
+    // Auto-open snail panel if this image has hidden data
+    if (file.snailDetected) {
+      snailAutoDecodeFile(file);
     } else {
-      snailToggleBtn.classList.remove('visible');
-      document.getElementById('snail-panel').classList.remove('visible');
+      resetSnailPanel();
       snailPanelOpen = false;
+      document.getElementById('snail-panel').classList.remove('visible');
     }
-    // Reset snail result when navigating to a new image
-    resetSnailResult();
   }
 
   function lbNavigate(dir) {
@@ -1544,7 +1545,7 @@ const chips = [];
     lbIndex = -1;
     comfyPanelOpen = true;
     snailPanelOpen = false;
-    resetSnailResult();
+    resetSnailPanel();
   }
 
   function onLightboxBgClick(e) {
@@ -1576,30 +1577,24 @@ const chips = [];
   let snailExtractedBlob = null;
   let snailExtractedExt = null;
   let snailResultObjectUrl = null;
+  let snailPendingHeaderBytes = null; // for password-protected images
 
   function toggleSnailPanel() {
     snailPanelOpen = !snailPanelOpen;
-    const panel = document.getElementById('snail-panel');
-    if (snailPanelOpen) {
-      panel.classList.add('visible');
-      // Reset state when opening for a new image
-      resetSnailResult();
-    } else {
-      panel.classList.remove('visible');
-    }
+    document.getElementById('snail-panel').classList.toggle('visible', snailPanelOpen);
   }
 
-  function resetSnailResult() {
+  function resetSnailPanel() {
     document.getElementById('snail-status').textContent = '';
     document.getElementById('snail-status').className = '';
     document.getElementById('snail-result').classList.remove('visible');
     document.getElementById('snail-result-media').innerHTML = '';
-    if (snailResultObjectUrl) {
-      URL.revokeObjectURL(snailResultObjectUrl);
-      snailResultObjectUrl = null;
-    }
+    document.getElementById('snail-pw-section').style.display = 'none';
+    document.getElementById('snail-pw-input').value = '';
+    if (snailResultObjectUrl) { URL.revokeObjectURL(snailResultObjectUrl); snailResultObjectUrl = null; }
     snailExtractedBlob = null;
     snailExtractedExt = null;
+    snailPendingHeaderBytes = null;
   }
 
   function setSnailStatus(msg, type) {
@@ -1619,38 +1614,29 @@ const chips = [];
 
   function snailExtractLsb(imageData) {
     const { data, width: w, height: h } = imageData;
-
-    // Read bit-depth from pixel (0,0) Red channel lower 2 bits
-    const bitMode = data[0] & 0x3; // R channel of first pixel
+    const bitMode = data[0] & 0x3;
     const lsbBits = [2, 4, 8][bitMode] ?? 4;
-
     const skipW = Math.floor(w * SNAIL_SKIP_W_RATIO);
     const skipH = Math.floor(h * SNAIL_SKIP_H_RATIO);
     const divisor = 1 << lsbBits;
     const mask = divisor - 1;
 
-    // Collect values from usable pixels (excluding skip region and pixel (0,0) Red)
     const vals = [];
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < w; x++) {
         for (let c = 0; c < 3; c++) {
-          if (y < skipH && x < skipW) continue;       // skip region
-          if (y === 0 && x === 0 && c === 0) continue; // bit-mode pixel
-          const pixIdx = (y * w + x) * 4 + c;
-          vals.push(data[pixIdx] & mask);
+          if (y < skipH && x < skipW) continue;
+          if (y === 0 && x === 0 && c === 0) continue;
+          vals.push(data[(y * w + x) * 4 + c] & mask);
         }
       }
     }
 
-    // Unpack vals into bits (MSB first within each value)
     const bits = [];
     for (const v of vals) {
-      for (let b = lsbBits - 1; b >= 0; b--) {
-        bits.push((v >> b) & 1);
-      }
+      for (let b = lsbBits - 1; b >= 0; b--) bits.push((v >> b) & 1);
     }
 
-    // Read header length (first 32 bits = 4 bytes big-endian uint32)
     function readBits(start, count) {
       let val = 0;
       for (let i = 0; i < count; i++) val = (val << 1) | (bits[start + i] ?? 0);
@@ -1663,109 +1649,123 @@ const chips = [];
     }
 
     const headerLen = readBits(0, 32);
-    if (headerLen === 0 || headerLen > 200 * 1024 * 1024) return null; // sanity check
+    if (headerLen === 0 || headerLen > 200 * 1024 * 1024) return null;
     return bitsToBytes(32, headerLen);
   }
 
+  // Returns { data, ext } on success, throws on magic mismatch or wrong password.
+  // Throws a special error with .needsPassword=true if password required but not given.
   async function snailParseHeader(headerBytes, password) {
     let idx = 0;
-
-    // Check magic "SNAIL"
     for (let i = 0; i < 5; i++) {
-      if (headerBytes[idx++] !== SNAIL_MAGIC[i]) throw new Error('Magic signature mismatch — not a SnailShell image');
+      if (headerBytes[idx++] !== SNAIL_MAGIC[i]) throw new Error('Not a SnailShell image');
     }
-
     const hasPwd = headerBytes[idx++] === 1;
     let salt = null;
-
     if (hasPwd) {
       const pwdHash = headerBytes.slice(idx, idx + 32); idx += 32;
       salt = headerBytes.slice(idx, idx + 16); idx += 16;
-
-      // Verify password
+      if (!password) {
+        const err = new Error('Password required');
+        err.needsPassword = true;
+        throw err;
+      }
       const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
-      const checkInput = new TextEncoder().encode(password + saltHex);
-      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', checkInput));
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + saltHex)));
       if (!digest.every((b, i) => b === pwdHash[i])) throw new Error('Wrong password');
     }
-
     const extLen = headerBytes[idx++];
     const ext = new TextDecoder().decode(headerBytes.slice(idx, idx + extLen)); idx += extLen;
     const dataLen = ((headerBytes[idx] << 24) | (headerBytes[idx+1] << 16) | (headerBytes[idx+2] << 8) | headerBytes[idx+3]) >>> 0; idx += 4;
     let payload = headerBytes.slice(idx, idx + dataLen);
-
-    if (hasPwd) {
-      payload = await snailDecrypt(payload, password, salt);
-    }
-
+    if (hasPwd) payload = await snailDecrypt(payload, password, salt);
     return { data: payload, ext };
   }
 
   async function snailDecrypt(data, password, salt) {
     const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
     const out = new Uint8Array(data.length);
-    let counter = 0;
-    let offset = 0;
+    let counter = 0, offset = 0;
     while (offset < data.length) {
-      const combined = new TextEncoder().encode(password + saltHex + String(counter));
-      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', combined));
-      for (let i = 0; i < digest.length && offset < data.length; i++, offset++) {
-        out[offset] = data[offset] ^ digest[i];
-      }
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password + saltHex + String(counter))));
+      for (let i = 0; i < digest.length && offset < data.length; i++, offset++) out[offset] = data[offset] ^ digest[i];
       counter++;
     }
     return out;
   }
 
-  async function snailDecode() {
-    const file = filteredFiles()[lbIndex];
-    if (!file || file.type !== 'image') {
-      setSnailStatus('Only available for image files.', 'error');
-      return;
-    }
+  function snailShowResult(data, ext) {
+    snailExtractedExt = ext;
+    const mimeType = ext === 'png' ? 'image/png' : ext === 'mp4' ? 'video/mp4' : 'application/octet-stream';
+    snailExtractedBlob = new Blob([data], { type: mimeType });
+    if (snailResultObjectUrl) URL.revokeObjectURL(snailResultObjectUrl);
+    snailResultObjectUrl = URL.createObjectURL(snailExtractedBlob);
 
-    const password = document.getElementById('snail-pw-input').value;
-    const btn = document.getElementById('snail-decode-btn');
-    btn.disabled = true;
-    setSnailStatus('Analyzing...', '');
-    resetSnailResult();
+    const mediaContainer = document.getElementById('snail-result-media');
+    mediaContainer.innerHTML = '';
+    if (ext === 'png') {
+      const img = document.createElement('img');
+      img.src = snailResultObjectUrl;
+      mediaContainer.appendChild(img);
+    } else if (ext === 'mp4') {
+      const video = document.createElement('video');
+      video.src = snailResultObjectUrl;
+      video.controls = true;
+      video.style.width = '100%';
+      mediaContainer.appendChild(video);
+    } else {
+      mediaContainer.textContent = `Unknown format: ${ext}`;
+    }
+    document.getElementById('snail-result').classList.add('visible');
+    setSnailStatus(`${ext.toUpperCase()} · ${formatSize(data.length)}`, 'ok');
+  }
+
+  // Called automatically when a snail image is opened in the lightbox
+  async function snailAutoDecodeFile(file) {
+    resetSnailPanel();
+    snailPanelOpen = true;
+    document.getElementById('snail-panel').classList.add('visible');
+    setSnailStatus('Decoding…', '');
 
     try {
-      const imageData = await imageBlobToPixels(file.blob);
-      setSnailStatus('Extracting LSB data...', '');
-
-      const headerBytes = snailExtractLsb(imageData);
+      // Use cached raw pixel data if available, else decode from blob
+      let headerBytes = file.snailHeaderBytes;
+      if (!headerBytes) {
+        const imageData = await imageBlobToPixels(file.blob);
+        headerBytes = snailExtractLsb(imageData);
+        file.snailHeaderBytes = headerBytes; // cache
+      }
       if (!headerBytes) throw new Error('No hidden data found.');
 
-      setSnailStatus('Parsing header...', '');
-      const { data, ext } = await snailParseHeader(headerBytes, password);
-
-      snailExtractedExt = ext;
-      let mimeType;
-      if (ext === 'png') mimeType = 'image/png';
-      else if (ext === 'mp4') mimeType = 'video/mp4';
-      else mimeType = 'application/octet-stream';
-
-      snailExtractedBlob = new Blob([data], { type: mimeType });
-      snailResultObjectUrl = URL.createObjectURL(snailExtractedBlob);
-
-      const mediaContainer = document.getElementById('snail-result-media');
-      if (ext === 'png') {
-        const img = document.createElement('img');
-        img.src = snailResultObjectUrl;
-        mediaContainer.appendChild(img);
-      } else if (ext === 'mp4') {
-        const video = document.createElement('video');
-        video.src = snailResultObjectUrl;
-        video.controls = true;
-        video.style.width = '100%';
-        mediaContainer.appendChild(video);
+      const { data, ext } = await snailParseHeader(headerBytes, '');
+      snailShowResult(data, ext);
+    } catch (err) {
+      if (err.needsPassword) {
+        snailPendingHeaderBytes = file.snailHeaderBytes;
+        setSnailStatus('Password protected', '');
+        document.getElementById('snail-pw-section').style.display = 'block';
+        document.getElementById('snail-pw-input').focus();
       } else {
-        mediaContainer.textContent = `Unknown format: ${ext}`;
+        setSnailStatus(err.message, 'error');
+        snailPanelOpen = false;
+        document.getElementById('snail-panel').classList.remove('visible');
       }
+    }
+  }
 
-      document.getElementById('snail-result').classList.add('visible');
-      setSnailStatus(`Extracted (${ext.toUpperCase()}, ${formatSize(data.length)})`, 'ok');
+  async function snailDecodeWithPassword() {
+    const password = document.getElementById('snail-pw-input').value;
+    if (!password) return;
+    const btn = document.getElementById('snail-decode-btn');
+    btn.disabled = true;
+    setSnailStatus('Unlocking…', '');
+    try {
+      const file = filteredFiles()[lbIndex];
+      const headerBytes = snailPendingHeaderBytes ?? file?.snailHeaderBytes;
+      if (!headerBytes) throw new Error('No data to decode.');
+      const { data, ext } = await snailParseHeader(headerBytes, password);
+      document.getElementById('snail-pw-section').style.display = 'none';
+      snailShowResult(data, ext);
     } catch (err) {
       setSnailStatus(err.message, 'error');
     } finally {
@@ -1781,6 +1781,43 @@ const chips = [];
     a.href = snailResultObjectUrl;
     a.download = `${baseName}_snail.${snailExtractedExt}`;
     a.click();
+  }
+
+  // Background snail detection after gallery loads — checks each PNG image
+  async function snailScanAll() {
+    for (let i = 0; i < allFiles.length; i++) {
+      const file = allFiles[i];
+      if (file.type !== 'image' || getExt(file.name) !== 'png') continue;
+      if (file.snailDetected !== undefined) continue; // already scanned
+      try {
+        const imageData = await imageBlobToPixels(file.blob);
+        const headerBytes = snailExtractLsb(imageData);
+        if (!headerBytes) { file.snailDetected = false; continue; }
+        // Quick magic check without full parse
+        const magic = headerBytes.slice(0, 5);
+        const isSnail = SNAIL_MAGIC.every((b, j) => b === magic[j]);
+        file.snailDetected = isSnail;
+        if (isSnail) {
+          file.snailHeaderBytes = headerBytes;
+          // Add badge to gallery card if rendered
+          updateSnailBadge(i);
+        }
+      } catch (_) { file.snailDetected = false; }
+    }
+  }
+
+  function updateSnailBadge(allFileIdx) {
+    // Find the card in the gallery matching this allFiles index
+    const files = filteredFiles();
+    const filteredIdx = files.indexOf(allFiles[allFileIdx]);
+    if (filteredIdx === -1) return;
+    const cards = document.querySelectorAll('#gallery .media-card');
+    const card = cards[filteredIdx];
+    if (!card || card.querySelector('.snail-badge')) return;
+    const badge = document.createElement('div');
+    badge.className = 'snail-badge';
+    badge.textContent = '🐌';
+    card.appendChild(badge);
   }
 </script>
 </body>
