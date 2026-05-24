@@ -74,6 +74,55 @@
     #download-all-btn:hover { background: #1d4ed8; }
     #download-all-btn.visible { display: flex; }
 
+    #decode-all-btn {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      background: #1a2a1a;
+      color: #86efac;
+      border: 1px solid #2d4a2d;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    #decode-all-btn:hover { background: #1f3a1f; }
+    #decode-all-btn.visible { display: flex; }
+    #decode-all-btn:disabled { opacity: 0.5; cursor: default; }
+
+    /* Decode-all progress bar */
+    #decode-progress {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 32px;
+      background: #0f0f0f;
+      border-bottom: 1px solid #1a1a1a;
+      font-size: 13px;
+      color: #86efac;
+    }
+
+    #decode-progress.visible { display: flex; }
+
+    #decode-progress-bar-wrap {
+      flex: 1;
+      height: 4px;
+      background: #222;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    #decode-progress-bar {
+      height: 100%;
+      background: #86efac;
+      border-radius: 2px;
+      transition: width 0.2s;
+      width: 0%;
+    }
+
     /* Drop zone */
     #drop-zone {
       display: flex;
@@ -756,6 +805,9 @@
       Open New ZIP
     </button>
   </div>
+  <button id="decode-all-btn" onclick="decodeAll()">
+    🐌 Decode All
+  </button>
   <button id="download-all-btn" onclick="downloadAll()">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -765,6 +817,11 @@
     Download All
   </button>
 </header>
+
+<div id="decode-progress">
+  <span id="decode-progress-text">Decoding…</span>
+  <div id="decode-progress-bar-wrap"><div id="decode-progress-bar"></div></div>
+</div>
 
 <div id="drop-zone">
   <input type="file" id="file-input" accept=".zip" multiple />
@@ -1277,6 +1334,8 @@ const chips = [];
     document.getElementById('stats-bar').classList.remove('visible');
     document.getElementById('filter-bar').classList.remove('visible');
     document.getElementById('download-all-btn').classList.remove('visible');
+    document.getElementById('decode-all-btn').classList.remove('visible');
+    document.getElementById('decode-progress').classList.remove('visible');
     document.getElementById('error-msg').classList.remove('visible');
     document.getElementById('home-btn').classList.remove('visible');
     document.getElementById('drop-zone').style.display = 'flex';
@@ -1378,6 +1437,7 @@ const chips = [];
     document.getElementById('filter-bar').classList.add('visible');
     document.getElementById('download-all-btn').classList.add('visible');
     document.getElementById('drop-zone').style.display = 'none';
+    // decode-all shown after scan finds at least one snail (updated by snailScanAll)
   }
 
   function renderGallery() {
@@ -1788,22 +1848,79 @@ const chips = [];
     for (let i = 0; i < allFiles.length; i++) {
       const file = allFiles[i];
       if (file.type !== 'image' || getExt(file.name) !== 'png') continue;
-      if (file.snailDetected !== undefined) continue; // already scanned
+      if (file.snailDetected !== undefined) continue;
       try {
         const imageData = await imageBlobToPixels(file.blob);
         const headerBytes = snailExtractLsb(imageData);
         if (!headerBytes) { file.snailDetected = false; continue; }
-        // Quick magic check without full parse
         const magic = headerBytes.slice(0, 5);
         const isSnail = SNAIL_MAGIC.every((b, j) => b === magic[j]);
         file.snailDetected = isSnail;
         if (isSnail) {
           file.snailHeaderBytes = headerBytes;
-          // Add badge to gallery card if rendered
           updateSnailBadge(i);
         }
       } catch (_) { file.snailDetected = false; }
     }
+    // Show decode-all button if any snails found
+    const hasSnail = allFiles.some(f => f.snailDetected);
+    document.getElementById('decode-all-btn').classList.toggle('visible', hasSnail);
+  }
+
+  async function decodeAll() {
+    const snailFiles = allFiles.filter(f => f.snailDetected && f.snailHeaderBytes);
+    if (!snailFiles.length) return;
+
+    const btn = document.getElementById('decode-all-btn');
+    btn.disabled = true;
+    const progress = document.getElementById('decode-progress');
+    const progressText = document.getElementById('decode-progress-text');
+    const progressBar = document.getElementById('decode-progress-bar');
+    progress.classList.add('visible');
+
+    const decoded = [];
+    for (let i = 0; i < snailFiles.length; i++) {
+      const file = snailFiles[i];
+      progressText.textContent = `Decoding ${i + 1} / ${snailFiles.length}…`;
+      progressBar.style.width = `${Math.round((i / snailFiles.length) * 100)}%`;
+      try {
+        const { data, ext } = await snailParseHeader(file.snailHeaderBytes, '');
+        const mimeType = ext === 'png' ? 'image/png' : ext === 'mp4' ? 'video/mp4' : 'application/octet-stream';
+        const blob = new Blob([data], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const baseName = file.name.replace(/\.[^.]+$/, '');
+        decoded.push({ name: `${baseName}_snail.${ext}`, blob, url, type: ext === 'mp4' ? 'video' : 'image', size: data.length, comfyMeta: null, snailDetected: false });
+      } catch (err) {
+        if (err.needsPassword) {
+          progressText.textContent = `Skipped (password protected): ${file.name}`;
+          await new Promise(r => setTimeout(r, 600));
+        }
+      }
+    }
+
+    progressBar.style.width = '100%';
+    progressText.textContent = `Done — ${decoded.length} image${decoded.length !== 1 ? 's' : ''} decoded`;
+
+    if (decoded.length === 0) {
+      setTimeout(() => progress.classList.remove('visible'), 2000);
+      btn.disabled = false;
+      return;
+    }
+
+    // Replace gallery with decoded images
+    allFiles.forEach(f => URL.revokeObjectURL(f.url));
+    allFiles = decoded;
+    currentFilter = 'all';
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+    document.getElementById('stat-zip-name').textContent = 'Decoded';
+    document.getElementById('stat-images').textContent = allFiles.filter(f => f.type === 'image').length;
+    document.getElementById('stat-videos').textContent = allFiles.filter(f => f.type === 'video').length;
+    document.getElementById('stat-size').textContent = formatSize(allFiles.reduce((s, f) => s + f.size, 0));
+    renderGallery();
+
+    btn.classList.remove('visible');
+    setTimeout(() => progress.classList.remove('visible'), 1500);
+    btn.disabled = false;
   }
 
   function updateSnailBadge(allFileIdx) {
