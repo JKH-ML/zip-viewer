@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -755,7 +755,7 @@
         <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
         <polyline points="9 21 9 12 15 12 15 21"/>
       </svg>
-      새 ZIP 열기
+      Open New ZIP
     </button>
   </div>
   <button id="download-all-btn" onclick="downloadAll()">
@@ -764,7 +764,7 @@
       <polyline points="7 10 12 15 17 10"/>
       <line x1="12" y1="15" x2="12" y2="3"/>
     </svg>
-    전체 다운로드
+    Download All
   </button>
 </header>
 
@@ -775,7 +775,7 @@
     <polyline points="17 8 12 3 7 8"/>
     <line x1="12" y1="3" x2="12" y2="15"/>
   </svg>
-  <p>ZIP 파일을 여기에 드래그하거나 아래 버튼으로 선택</p>
+  <p>Drag ZIP files here or select with the button below</p>
   <div class="drop-zone-actions">
     <button class="dz-btn dz-btn-primary" onclick="document.getElementById('file-input').click()">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -783,37 +783,37 @@
         <polyline points="17 8 12 3 7 8"/>
         <line x1="12" y1="3" x2="12" y2="15"/>
       </svg>
-      ZIP 파일 선택 (다중 가능)
+      Select ZIP Files (multiple)
     </button>
   </div>
-  <span>여러 ZIP을 한 번에 드래그하거나 선택할 수 있습니다</span>
+  <span>You can drag or select multiple ZIPs at once</span>
 </div>
 
 <div id="loading">
   <div class="spinner"></div>
-  <p id="loading-text">ZIP 파일 분석 중...</p>
+  <p id="loading-text">Analyzing ZIP file...</p>
 </div>
 
 <div id="error-msg"></div>
 
 <div id="stats-bar">
-  <span>로드: <strong id="stat-zip-name"></strong></span>
-  <span>이미지: <strong id="stat-images">0</strong>개</span>
-  <span>동영상: <strong id="stat-videos">0</strong>개</span>
-  <span>총 크기: <strong id="stat-size"></strong></span>
+  <span>Loaded: <strong id="stat-zip-name"></strong></span>
+  <span>Images: <strong id="stat-images">0</strong></span>
+  <span>Videos: <strong id="stat-videos">0</strong></span>
+  <span>Total size: <strong id="stat-size"></strong></span>
 </div>
 
 <div id="filter-bar">
-  <button class="filter-btn active" data-filter="all" onclick="applyFilter(this)">전체</button>
-  <button class="filter-btn" data-filter="image" onclick="applyFilter(this)">이미지</button>
-  <button class="filter-btn" data-filter="video" onclick="applyFilter(this)">동영상</button>
+  <button class="filter-btn active" data-filter="all" onclick="applyFilter(this)">All</button>
+  <button class="filter-btn" data-filter="image" onclick="applyFilter(this)">Images</button>
+  <button class="filter-btn" data-filter="video" onclick="applyFilter(this)">Videos</button>
 </div>
 
 <div id="gallery"></div>
 
 <!-- Lightbox -->
 <div id="lightbox" onclick="onLightboxBgClick(event)">
-  <div id="lb-drop-overlay"><span>ZIP 파일을 놓아 추가</span></div>
+  <div id="lb-drop-overlay"><span>Drop ZIP to add</span></div>
   <button class="lb-arrow" id="lb-prev" onclick="lbNavigate(-1)">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
@@ -825,42 +825,42 @@
       <div id="lightbox-name"></div>
       <button id="comfy-toggle" onclick="toggleComfyPanel()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
-        워크플로우
+        Workflow
       </button>
       <button id="snail-toggle" onclick="toggleSnailPanel()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M11 8v3l2 2"/></svg>
-        🐌 숨김 데이터
+        🐌 Hidden Data
       </button>
       <button id="lb-save-btn" onclick="lbSaveCurrent()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        저장
+        Save
       </button>
     </div>
   </div>
   <div id="comfy-panel">
     <div id="comfy-panel-header">
-      <span id="comfy-panel-title">워크플로우 정보</span>
+      <span id="comfy-panel-title">Workflow Info</span>
       <button id="comfy-panel-close" onclick="toggleComfyPanel()">&#215;</button>
     </div>
     <div id="comfy-panel-body"></div>
   </div>
   <div id="snail-panel">
     <div id="snail-panel-header">
-      <span id="snail-panel-title">🐌 숨김 데이터 추출</span>
+      <span id="snail-panel-title">🐌 Extract Hidden Data</span>
       <button id="snail-panel-close" onclick="toggleSnailPanel()">&#215;</button>
     </div>
     <div id="snail-panel-body">
-      <div class="snail-label">비밀번호 (없으면 빈칸)</div>
+      <div class="snail-label">Password (leave blank if none)</div>
       <div class="snail-pw-row">
         <input type="password" id="snail-pw-input" class="snail-pw-input" placeholder="password" />
-        <button class="snail-decode-btn" id="snail-decode-btn" onclick="snailDecode()">추출</button>
+        <button class="snail-decode-btn" id="snail-decode-btn" onclick="snailDecode()">Extract</button>
       </div>
       <div id="snail-status"></div>
       <div id="snail-result">
         <div id="snail-result-media"></div>
         <button class="snail-save-btn" id="snail-save-btn" onclick="snailSave()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          숨김 파일 저장
+          Save Hidden File
         </button>
       </div>
     </div>
@@ -1252,7 +1252,7 @@ const chips = [];
   });
 
   function setLoading(text) {
-    document.getElementById('loading-text').textContent = text || 'ZIP 파일 분석 중...';
+    document.getElementById('loading-text').textContent = text || 'Analyzing ZIP file...';
     document.getElementById('loading').classList.add('visible');
     document.getElementById('drop-zone').style.display = 'none';
     document.getElementById('gallery').innerHTML = '';
@@ -1298,7 +1298,7 @@ const chips = [];
     for (let i = 0; i < entries.length; i++) {
       const { entry, name } = entries[i];
       document.getElementById('loading-text').textContent =
-        `처리 중: ${file.name} (${i + 1} / ${entries.length})`;
+        `Processing: ${file.name} (${i + 1} / ${entries.length})`;
       const blob = await entry.async('blob');
       const mimeBlob = fixMime(blob, name);
       const url = URL.createObjectURL(mimeBlob);
@@ -1314,7 +1314,7 @@ const chips = [];
   }
 
   async function processZips(files) {
-    setLoading('ZIP 파일 열기...');
+    setLoading('Opening ZIP files...');
     allFiles.forEach(f => URL.revokeObjectURL(f.url));
     allFiles = [];
     let totalLoaded = 0;
@@ -1324,10 +1324,10 @@ const chips = [];
         allFiles.push(...extracted);
         totalLoaded += extracted.length;
       } catch (err) {
-        console.warn(`${file.name} 처리 오류:`, err);
+        console.warn(`${file.name} error:`, err);
       }
     }
-    if (allFiles.length === 0) { showError('ZIP 파일 안에 지원하는 이미지 또는 동영상 파일이 없습니다.'); return; }
+    if (allFiles.length === 0) { showError('No supported image or video files found in the ZIP.'); return; }
     hideLoading();
     renderStats(files.length);
     renderGallery();
@@ -1336,21 +1336,21 @@ const chips = [];
 
   async function appendZips(files) {
     const prevLength = allFiles.length;
-    document.getElementById('loading-text').textContent = 'ZIP 추가 중...';
+    document.getElementById('loading-text').textContent = 'Adding ZIPs...';
     document.getElementById('loading').classList.add('visible');
     for (const file of files) {
       try {
         const extracted = await extractZipFiles(file);
         allFiles.push(...extracted);
       } catch (err) {
-        console.warn(`${file.name} 처리 오류:`, err);
+        console.warn(`${file.name} error:`, err);
       }
     }
     document.getElementById('loading').classList.remove('visible');
     if (allFiles.length === prevLength) return;
     renderStats(null);
     renderGallery();
-    // 새로 추가된 첫 번째 파일로 라이트박스 이동
+    // Navigate lightbox to first newly added file
     lbIndex = filteredFiles().length - (allFiles.length - prevLength);
     renderLightboxItem();
   }
@@ -1371,7 +1371,7 @@ const chips = [];
 
   function renderStats(zipCount) {
     if (zipCount !== null) {
-      document.getElementById('stat-zip-name').textContent = zipCount === 1 ? '1개 ZIP' : zipCount + '개 ZIP';
+      document.getElementById('stat-zip-name').textContent = zipCount === 1 ? '1 ZIP' : zipCount + ' ZIPs';
     }
     document.getElementById('stat-images').textContent = allFiles.filter(f => f.type === 'image').length;
     document.getElementById('stat-videos').textContent = allFiles.filter(f => f.type === 'video').length;
@@ -1417,7 +1417,7 @@ const chips = [];
 
       const dlBtn = document.createElement('button');
       dlBtn.className = 'dl-btn';
-      dlBtn.title = '다운로드';
+      dlBtn.title = 'Download';
       dlBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
       dlBtn.onclick = e => { e.stopPropagation(); downloadFile(file); };
 
@@ -1446,7 +1446,7 @@ const chips = [];
   async function downloadAll() {
     const btn = document.getElementById('download-all-btn');
     btn.disabled = true;
-    btn.textContent = '압축 중...';
+    btn.textContent = 'Compressing...';
     try {
       const zip = new JSZip();
       allFiles.forEach(f => zip.file(f.name, f.blob));
@@ -1459,7 +1459,7 @@ const chips = [];
       URL.revokeObjectURL(url);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 다운로드`;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download All`;
     }
   }
 
@@ -1686,7 +1686,7 @@ const chips = [];
       const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, '0')).join('');
       const checkInput = new TextEncoder().encode(password + saltHex);
       const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', checkInput));
-      if (!digest.every((b, i) => b === pwdHash[i])) throw new Error('비밀번호가 틀렸습니다');
+      if (!digest.every((b, i) => b === pwdHash[i])) throw new Error('Wrong password');
     }
 
     const extLen = headerBytes[idx++];
@@ -1720,24 +1720,24 @@ const chips = [];
   async function snailDecode() {
     const file = filteredFiles()[lbIndex];
     if (!file || file.type !== 'image') {
-      setSnailStatus('이미지 파일에만 사용할 수 있습니다.', 'error');
+      setSnailStatus('Only available for image files.', 'error');
       return;
     }
 
     const password = document.getElementById('snail-pw-input').value;
     const btn = document.getElementById('snail-decode-btn');
     btn.disabled = true;
-    setSnailStatus('분석 중...', '');
+    setSnailStatus('Analyzing...', '');
     resetSnailResult();
 
     try {
       const imageData = await imageBlobToPixels(file.blob);
-      setSnailStatus('LSB 추출 중...', '');
+      setSnailStatus('Extracting LSB data...', '');
 
       const headerBytes = snailExtractLsb(imageData);
-      if (!headerBytes) throw new Error('데이터를 찾을 수 없습니다.');
+      if (!headerBytes) throw new Error('No hidden data found.');
 
-      setSnailStatus('헤더 파싱 중...', '');
+      setSnailStatus('Parsing header...', '');
       const { data, ext } = await snailParseHeader(headerBytes, password);
 
       snailExtractedExt = ext;
@@ -1761,11 +1761,11 @@ const chips = [];
         video.style.width = '100%';
         mediaContainer.appendChild(video);
       } else {
-        mediaContainer.textContent = `알 수 없는 형식: ${ext}`;
+        mediaContainer.textContent = `Unknown format: ${ext}`;
       }
 
       document.getElementById('snail-result').classList.add('visible');
-      setSnailStatus(`추출 완료 (${ext.toUpperCase()}, ${formatSize(data.length)})`, 'ok');
+      setSnailStatus(`Extracted (${ext.toUpperCase()}, ${formatSize(data.length)})`, 'ok');
     } catch (err) {
       setSnailStatus(err.message, 'error');
     } finally {
